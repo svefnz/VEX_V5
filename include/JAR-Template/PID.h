@@ -1,6 +1,9 @@
 #pragma once
 #include "vex.h"
 
+// P[比例] - I[积分] - D[微分]
+// VEX PID 计算周期 10ms
+
 class PID
 {
 public:

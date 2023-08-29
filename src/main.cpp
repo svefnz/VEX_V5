@@ -214,12 +214,13 @@ void right_drive(int vel){
   RG.spin(reverse, vel, voltageUnits::mV);
 }
 
-bool RemoteControlCodeEnabled = true; // 启用遥控密码
-bool DrivetrainLNeedsToBeStopped_Controller1 = true; // 左传动系统需停止运行
-bool DrivetrainRNeedsToBeStopped_Controller1 = true; // 右传动系统需停止运行
+bool RemoteControlCodeEnabled = true; // 启用遥控
+bool DrivetrainLNeedsToBeStopped_Controller1 = true; // 左传动系统是否需停止运行
+bool DrivetrainRNeedsToBeStopped_Controller1 = true; // 右传动系统是否需停止运行
 
 // define a task that will handle monitoring inputs from Controller1
 // 定义一个任务，处理来自 Controller1 的监控输入 || 遥控自动循环功能控制器
+// 此处 电机给电压 = 控制器操纵杆轴位置(-100 ~ 100) * 120 
 int rc_auto_loop_function_Controller1() {
   // process the controller input every 20 milliseconds
   // update the motors based on the input values
@@ -238,37 +239,37 @@ int rc_auto_loop_function_Controller1() {
       // 检查数值是否在死区范围内
       if (drivetrainLeftSideSpeed < 5 && drivetrainLeftSideSpeed > -5) {
         // check if the left motor has already been stopped
+        // 检查左侧电机是否已经停止
         if (DrivetrainLNeedsToBeStopped_Controller1) {
           // stop the left drive motor
+          // 停止左驱动电机
           LG.stop();
           // tell the code that the left motor has been stopped
+          // 修改外部用于判断的定义变量
           DrivetrainLNeedsToBeStopped_Controller1 = false;
         }
       } else {
         // reset the toggle so that the deadband code knows to stop the left motor nexttime the input is in the deadband range
+        // 重置切换开关，以便死区代码知道下次输入处于死区范围时左电机将停止运行
         DrivetrainLNeedsToBeStopped_Controller1 = true;
       }
-      // check if the value is inside of the deadband range
+      // 右侧同左侧
       if (drivetrainRightSideSpeed < 5 && drivetrainRightSideSpeed > -5) {
-        // check if the right motor has already been stopped
         if (DrivetrainRNeedsToBeStopped_Controller1) {
-          // stop the right drive motor
           RG.stop();
-          // tell the code that the right motor has been stopped
           DrivetrainRNeedsToBeStopped_Controller1 = false;
         }
       } else {
-        // reset the toggle so that the deadband code knows to stop the right motor next time the input is in the deadband range
         DrivetrainRNeedsToBeStopped_Controller1 = true;
       }
       
       // only tell the left drive motor to spin if the values are not in the deadband range
+      // 只有当数值不在死区范围内时，才告诉左驱动电机旋转
       if (DrivetrainLNeedsToBeStopped_Controller1) {
         //LG.setVelocity(drivetrainLeftSideSpeed, percent);
         //LG.spin(forward);
         left_drive(drivetrainLeftSideSpeed);
       }
-      // only tell the right drive motor to spin if the values are not in the deadband range
       if (DrivetrainRNeedsToBeStopped_Controller1) {
         //RG.setVelocity(drivetrainRightSideSpeed, percent);
         //RG.spin(forward);
@@ -276,6 +277,7 @@ int rc_auto_loop_function_Controller1() {
       }
     }
     // wait before repeating the process
+    // 间隔 20ms 后循环处理
     wait(20, msec);
   }
   return 0;
@@ -311,7 +313,7 @@ int Shootaaa (){
 /*  You must modify the code to add your own robot specific commands here.   */
 /*---------------------------------------------------------------------------*/
 void usercontrol(void) {
-   //*/
+   /* 各电机组停止模式初始化 | coast(滑行) | brake(制动) | hold(制动并保持位置) */
   int MV = 110;
   LG.setStopping(coast);
   RG.setStopping(coast);
@@ -321,7 +323,7 @@ void usercontrol(void) {
   Brain.Timer.reset();
   //RingSen1.setLightPower(100);
   
-  while(1){
+  while(true){
     ////////////////////////////////////////////////////////////////////////////////////////
     // ======================================= NBT ====================================== //
     //int a = Shoot.pressing();
@@ -330,20 +332,17 @@ void usercontrol(void) {
     //LG.spin(fwd, Controller1.Axis3.position(pct)*MV, voltageUnits::mV); RG.spin(fwd, Controller1.Axis2.position(pct)*MV, voltageUnits::mV);//Tank
     task rc_auto_loop_task_Controller1(rc_auto_loop_function_Controller1);//遙控車
 
-    if(Controller1.ButtonLeft.pressing()){
+    if(Controller1.ButtonLeft.pressing()) {
       ProjG.spinFor(forward, 100, degrees, false);
       wait(0.3, sec);
       BS = 1;
-      ProjG.spin(forward, 100, pct);
-      
-    }else if(Controller1.ButtonUp.pressing()){
+      ProjG.spin(forward, 100, pct);      
+    } else if (Controller1.ButtonUp.pressing()) {
       task aa = task(Shootaa);
-    }
-    else if(Controller1.ButtonRight.pressing()){
+    } else if (Controller1.ButtonRight.pressing()) {
       ON = false;
       ProjG.stop();
-    }
-    if(BS == 1 and Shoot.pressing()){
+    } if (BS == 1 and Shoot.pressing()) { // Shoot.pressing - 判断限位开关是否被按下
       ProjG.stop();
       BS = 0;
     }
